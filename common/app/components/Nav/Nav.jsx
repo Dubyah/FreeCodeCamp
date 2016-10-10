@@ -1,113 +1,247 @@
 import React, { PropTypes } from 'react';
+import ReactDOM from 'react-dom';
+import { LinkContainer } from 'react-router-bootstrap';
 import {
   Col,
-  CollapsibleNav,
   Nav,
+  NavbarBrand,
   Navbar,
   NavItem
 } from 'react-bootstrap';
 
 import navLinks from './links.json';
-import FCCNavItem from './NavItem.jsx';
+import PointsNavItem from './Points-Nav-Item.jsx';
+import AvatarNavItem from './Avatar-Nav-Item.jsx';
 
 const fCClogo = 'https://s3.amazonaws.com/freecodecamp/freecodecamp_logo.svg';
-const navElements = navLinks.map((navItem, index) => {
-  return (
-    <NavItem
-      eventKey={ index + 1 }
-      href={ navItem.link }
-      key={ index }>
-      { navItem.content }
-    </NavItem>
-  );
-});
 
-const logoElement = (
-  <a href='/'>
-    <img
-      alt='learn to code javascript at Free Code Camp logo'
-      className='img-responsive nav-logo'
-      src={ fCClogo } />
-  </a>
+const toggleButtonChild = (
+  <Col xs={ 12 }>
+    <span className='hamburger-text'>Menu</span>
+  </Col>
 );
 
-const toggleButton = (
-  <button className='hamburger'>
-    <Col xs={ 12 }>
-      <span className='hamburger-text'>Menu</span>
-    </Col>
-  </button>
-);
+function handleNavLinkEvent(content) {
+  this.props.trackEvent({
+    category: 'Nav',
+    action: 'clicked',
+    label: `${content} link`
+  });
+}
 
 export default class extends React.Component {
-  constructor(props) {
-    super(props);
+  constructor(...props) {
+    super(...props);
+    this.handleMapClickOnMap = this.handleMapClickOnMap.bind(this);
+    this.handleLogoClick = this.handleLogoClick.bind(this);
+    navLinks.forEach(({ content }) => {
+      this[`handle${content}Click`] = handleNavLinkEvent.bind(this, content);
+    });
   }
-
-  static displayName = 'Nav'
+  static displayName = 'Nav';
   static propTypes = {
     points: PropTypes.number,
     picture: PropTypes.string,
     signedIn: PropTypes.bool,
-    username: PropTypes.string
+    username: PropTypes.string,
+    isOnMap: PropTypes.bool,
+    updateNavHeight: PropTypes.func,
+    toggleMapDrawer: PropTypes.func,
+    toggleMainChat: PropTypes.func,
+    shouldShowSignIn: PropTypes.bool,
+    trackEvent: PropTypes.func.isRequired,
+    loadCurrentChallenge: PropTypes.func.isRequired
+  };
+
+  componentDidMount() {
+    const navBar = ReactDOM.findDOMNode(this);
+    this.props.updateNavHeight(navBar.clientHeight);
   }
 
-  renderPoints(username, points) {
-    if (!username) {
-      return null;
+  handleMapClickOnMap(e) {
+    e.preventDefault();
+    this.props.trackEvent({
+      category: 'Nav',
+      action: 'clicked',
+      label: 'map clicked while on map'
+    });
+  }
+
+  handleNavClick() {
+    this.props.trackEvent({
+      category: 'Nav',
+      action: 'clicked',
+      label: 'map clicked while on map'
+    });
+  }
+
+  handleLogoClick(e) {
+    e.preventDefault();
+    this.props.loadCurrentChallenge();
+  }
+
+  renderMapLink(isOnMap, toggleMapDrawer) {
+    if (isOnMap) {
+      return (
+        <li role='presentation'>
+          <a
+            href='#'
+            onClick={ this.handleMapClickOnMap }
+            >
+            Map
+          </a>
+        </li>
+      );
     }
     return (
+      <LinkContainer
+        eventKey={ 1 }
+        to='/map'
+        >
+        <NavItem
+          onClick={ e => {
+            if (!(e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              toggleMapDrawer();
+            }
+          }}
+          target='/map'
+          >
+          Map
+        </NavItem>
+      </LinkContainer>
+    );
+  }
+
+  renderChat(toggleMainChat) {
+    return (
       <NavItem
-        href={ '/' + username }>
-        [ { points } ]
+        eventKey={ 2 }
+        href='//gitter.im/freecodecamp/freecodecamp'
+        onClick={ e => {
+          if (!(e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            toggleMainChat();
+          }
+        }}
+        target='_blank'
+        >
+        Chat
       </NavItem>
     );
   }
 
-  renderSignin(username, picture) {
-    if (username) {
+  renderLinks() {
+    return navLinks.map(({ content, link, react, target }, index) => {
+      if (react) {
+        return (
+          <LinkContainer
+            eventKey={ index + 2 }
+            key={ content }
+            onClick={ this[`handle${content}Click`] }
+            to={ link }
+            >
+            <NavItem
+              target={ target || null }
+              >
+              { content }
+            </NavItem>
+          </LinkContainer>
+        );
+      }
       return (
-        <div
-          className='hidden-xs hidden-sm'
-          eventKey={ 2 }>
-          <a href={ '/' + username }>
-            <img
-              className='profile-picture float-right'
-              src={ picture } />
-          </a>
-        </div>
+        <NavItem
+          eventKey={ index + 1 }
+          href={ link }
+          key={ content }
+          onClick={ this[`handle${content}Click`] }
+          target={ target || null }
+          >
+          { content }
+        </NavItem>
       );
+    });
+  }
+
+  renderPoints(username, points, shouldShowSignIn) {
+    if (!username || !shouldShowSignIn) {
+      return null;
+    }
+    return (
+      <LinkContainer
+        eventKey={ navLinks.length + 1 }
+        key='points'
+        to='/settings'
+        >
+        <PointsNavItem
+          className='brownie-points-nav'
+          points={ points }
+        />
+      </LinkContainer>
+    );
+  }
+
+  renderSignIn(username, picture, shouldShowSignIn) {
+    if (!shouldShowSignIn) {
+      return null;
+    }
+    if (username) {
+      return <AvatarNavItem picture={ picture } />;
     } else {
       return (
-        <FCCNavItem
-          className='btn signup-btn signup-btn-nav'
+        <NavItem
           eventKey={ 2 }
-          href='/login'>
-          Sign In
-        </FCCNavItem>
+          href='/signup'
+          key='signup'
+          >
+          Sign Up
+        </NavItem>
       );
     }
   }
 
   render() {
-    const { username, points, picture } = this.props;
+    const {
+      username,
+      points,
+      picture,
+      isOnMap,
+      toggleMapDrawer,
+      toggleMainChat,
+      shouldShowSignIn
+    } = this.props;
+
     return (
       <Navbar
-        brand={ logoElement }
         className='nav-height'
         fixedTop={ true }
-        toggleButton={ toggleButton }
-        toggleNavKey={ 0 }>
-        <CollapsibleNav eventKey={ 0 }>
+        >
+        <NavbarBrand>
+          <a
+            href='/challenges/current-challenge'
+            onClick={ this.handleLogoClick }
+            >
+            <img
+              alt='learn to code javascript at Free Code Camp logo'
+              className='img-responsive nav-logo'
+              src={ fCClogo }
+            />
+          </a>
+        </NavbarBrand>
+        <Navbar.Toggle children={ toggleButtonChild } />
+        <Navbar.Collapse>
           <Nav
             className='hamburger-dropdown'
             navbar={ true }
-            right={ true }>
-            { navElements }
-            { this.renderPoints(username, points)}
-            { this.renderSignin(username, picture) }
+            pullRight={ true }
+            >
+            { this.renderMapLink(isOnMap, toggleMapDrawer) }
+            { this.renderChat(toggleMainChat) }
+            { this.renderLinks() }
+            { this.renderPoints(username, points, shouldShowSignIn) }
+            { this.renderSignIn(username, picture, shouldShowSignIn) }
           </Nav>
-        </CollapsibleNav>
+        </Navbar.Collapse>
       </Navbar>
     );
   }

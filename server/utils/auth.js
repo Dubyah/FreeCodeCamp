@@ -1,5 +1,3 @@
-import assign from 'object.assign';
-
 const providerHash = {
   facebook: ({ id }) => id,
   twitter: ({ username }) => username,
@@ -24,23 +22,26 @@ export function setProfileFromGithub(
   },
   {
     id: githubId,
-    'avatar_url': picture,
+    avatar_url: picture,
     email: githubEmail,
-    'created_at': joinedGithubOn,
+    created_at: joinedGithubOn,
     blog: website,
     location,
+    bio,
     name
   }
 ) {
-  return assign(
+  return Object.assign(
     user,
-    { isGithubCool: true, isMigrationGrandfathered: false },
     {
       name,
+      email: user.email || githubEmail,
       username: username.toLowerCase(),
       location,
+      bio,
       joinedGithubOn,
       website,
+      isGithubCool: true,
       picture,
       githubId,
       githubURL,

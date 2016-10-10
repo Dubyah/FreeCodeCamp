@@ -1,14 +1,15 @@
 doctype html
-html(ng-app='profileValidation', lang='en')
+html(lang='en')
   head
     if title
       title= title
     else
-      title redirecting to | Free Code Camp
-    include partials/small-head
-  body.top-and-bottom-margins(style='overflow: hidden')
-    .container
-      include partials/flash
-      #fcc!= markup
+      title Free Code Camp
+    include partials/react-stylesheets
+  body.container.react-layout(style='overflow: hidden')
+    #fcc!= markup
     script!= state
-    script(src=rev('/js', 'bundle.js'))
+    script.
+      window.webpackManifest = !{JSON.stringify(chunkManifest || {})};
+    script(src=rev('/js', 'vendor-challenges.js'))
+    script(src=getBundleLocation())
