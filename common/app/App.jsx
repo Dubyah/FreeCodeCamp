@@ -1,60 +1,76 @@
 import React, { PropTypes } from 'react';
-import { contain } from 'thundercats-react';
-import { Row } from 'react-bootstrap';
+import { connect } from 'react-redux';
 
-import { Nav } from './components/Nav';
-import { Footer } from './components/Footer';
+import ns from './ns.json';
+import {
+  appMounted,
+  fetchUser,
+  updateAppLang,
 
-export default contain(
-  {
-    store: 'appStore',
-    fetchAction: 'appActions.getUser',
-    getPayload(props) {
-      return {
-        isPrimed: !!props.username
-      };
+  userSelector
+} from './redux';
+
+import Nav from './Nav';
+import Toasts from './Toasts';
+
+const mapDispatchToProps = {
+  appMounted,
+  fetchUser,
+  updateAppLang
+};
+
+const mapStateToProps = state => {
+  const { username } = userSelector(state);
+  return {
+    toast: state.app.toast,
+    isSignedIn: !!username
+  };
+};
+
+const propTypes = {
+  appMounted: PropTypes.func.isRequired,
+  children: PropTypes.node,
+  fetchUser: PropTypes.func,
+  isSignedIn: PropTypes.bool,
+  params: PropTypes.object,
+  toast: PropTypes.object,
+  updateAppLang: PropTypes.func.isRequired
+};
+
+// export plain class for testing
+export class FreeCodeCamp extends React.Component {
+  componentWillReceiveProps(nextProps) {
+    if (this.props.params.lang !== nextProps.params.lang) {
+      this.props.updateAppLang(nextProps.params.lang);
     }
-  },
-  React.createClass({
-    displayName: 'FreeCodeCamp',
+  }
 
-    propTypes: {
-      children: PropTypes.node,
-      points: PropTypes.number,
-      picture: PropTypes.string,
-      title: PropTypes.string,
-      username: PropTypes.string
-    },
-
-    componentDidMount() {
-      const title = this.props.title;
-      this.setTitle(title);
-    },
-
-    componentWillReceiveProps(nextProps) {
-      if (nextProps.title !== this.props.title) {
-        this.setTitle(nextProps.title);
-      }
-    },
-
-    setTitle(title) {
-      const doc = typeof document !== 'undefined' ? document : {};
-      doc.title = title;
-    },
-
-    render() {
-      const { username, points, picture } = this.props;
-      const navProps = { username, points, picture };
-      return (
-        <div>
-          <Nav
-            { ...navProps }/>
-          <Row>
-            { this.props.children }
-          </Row>
-          <Footer />
-        </div>
-      );
+  componentDidMount() {
+    this.props.appMounted();
+    if (!this.props.isSignedIn) {
+      this.props.fetchUser();
     }
-  })
-);
+  }
+
+  render() {
+    // we render nav after the content
+    // to allow the panes to update
+    // redux store, which will update the bin
+    // buttons in the nav
+    return (
+      <div className={ `${ns}-container` }>
+        { this.props.children }
+        <Nav />
+        <Toasts />
+      </div>
+    );
+  }
+}
+
+FreeCodeCamp.displayName = 'freeCodeCamp';
+FreeCodeCamp.propTypes = propTypes;
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(FreeCodeCamp);
